@@ -46,18 +46,18 @@ namespace LnX.ML
             var transformer = new ConvolutionalTransformer(KernelUtil.Create(4, 4, 3), Function.CreateReLU(), 1);
             transformer.Transform(context);
 
-            //var sources = ImageSourceUtil.CreateBitmapSource(context.Output);
-            //TestImg.Source = sources[0];
-            //TestImg1.Source = sources[1];
-            //TestImg2.Source = sources[2];
+            var sources = ImageSourceUtil.CreateBitmapSource(context.Output);
+            TestImg.Source = sources[0];
+            TestImg1.Source = sources[1];
+            TestImg2.Source = sources[2];
 
             var poolingTransformer = new PoolingTransformer(3, 3, Function.CreateMaxPooling());
             poolingTransformer.Transform(context);
 
-            //sources = ImageSourceUtil.CreateBitmapSource(context.Output);
-            //TestImg3.Source = sources[0];
-            //TestImg4.Source = sources[1];
-            //TestImg5.Source = sources[2];
+            sources = ImageSourceUtil.CreateBitmapSource(context.Output);
+            TestImg3.Source = sources[0];
+            TestImg4.Source = sources[1];
+            TestImg5.Source = sources[2];
 
             var fullyConnectTransformer = new FullyConnectTransformer();
             fullyConnectTransformer.Transform(context);

@@ -6,26 +6,32 @@
         xmlns:local="clr-namespace:LnX.ML"
         xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
         mc:Ignorable="d"
-        Title="DNNWindow" Height="450" Width="800">
+        Title="DNNWindow" Height="600" Width="800">
 
     <Window.DataContext>
         <local:ViewData />
     </Window.DataContext>
-    
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="7*"/>
-            <ColumnDefinition Width="3*"/>
-        </Grid.ColumnDefinitions>
 
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="4*"/>
+            <RowDefinition Height="2*"/>
+        </Grid.RowDefinitions>
+        
         <lvc:CartesianChart x:Name="MyChart" Series="{Binding Series}" ZoomMode="Both" />
         
-        <TextBox Grid.Column="1" VerticalAlignment="Bottom" Margin="0,0,0,90" Text="{Binding DataCount}"/>
-        <Button x:Name="GenerateBtn" Content="生成数据" VerticalAlignment="Bottom" Grid.Column="1" Margin="0 0 0 60" Click="GenerateBtn_Click" />
-        <Button x:Name="TrainBtn" Content="训练" VerticalAlignment="Bottom" Grid.Column="1" Margin="0 0 0 30" Click="TrainBtn_Click" />
-        <Button x:Name="TestBtn" Content="测试" VerticalAlignment="Bottom" Grid.Column="1" Click="TestBtn_Click" />
-        
-        <ProgressBar x:Name="LoadingBar" Grid.Column="1" VerticalAlignment="Top" Margin="0 5 0 0" IsIndeterminate="False" Height="10" />
-        <TextBox x:Name="TrainLog" Grid.Column="1" VerticalAlignment="Top" Margin="0 20 0 0" Foreground="Gray" Height="280" VerticalScrollBarVisibility="Auto" TextWrapping="WrapWithOverflow" />
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="8*"/>
+                <ColumnDefinition Width="2*"/>
+            </Grid.ColumnDefinitions>
+            <ProgressBar x:Name="LoadingBar" VerticalAlignment="Top" Margin="0 5 0 5" IsIndeterminate="False" Height="5" />
+            <TextBox x:Name="TrainLog" Margin="0 15 0 5" Foreground="Gray" VerticalScrollBarVisibility="Auto" IsReadOnly="True"/>
+
+            <TextBox Grid.Column="1" VerticalAlignment="Bottom" Margin="10 0 10 100" Text="{Binding DataCount}"/>
+            <Button x:Name="GenerateBtn" Content="生成数据" VerticalAlignment="Bottom" Grid.Column="1" Margin="10 0 10 70" Click="GenerateBtn_Click" />
+            <Button x:Name="TrainBtn" Content="训练" VerticalAlignment="Bottom" Grid.Column="1" Margin="10 0 10 40" Click="TrainBtn_Click" />
+            <Button x:Name="TestBtn" Content="测试" VerticalAlignment="Bottom" Grid.Column="1" Margin="10 0 10 10" Click="TestBtn_Click" />
+        </Grid>
     </Grid>
 </Window>
