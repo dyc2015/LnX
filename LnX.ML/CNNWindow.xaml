@@ -1,0 +1,47 @@
+﻿<Window x:Class="LnX.ML.CNNWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:LnX.ML"
+        mc:Ignorable="d"
+        Title="CNNWindow" Height="600" Width="800">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="8*" />
+            <ColumnDefinition Width="2*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="520" />
+        </Grid.RowDefinitions>
+        <Button x:Name="DataFolderPicker" Content="点击选择" Click="DataFolderPicker_Click" Height="20" Grid.Column="1" VerticalAlignment="Top" Margin="10,10,10,0"/>
+        <TextBox x:Name="DataFolderPath" Margin="10,10,10,0" Text="选择数据文件目录" VerticalAlignment="Top" TextWrapping="Wrap" IsReadOnly="True" IsUndoEnabled="False" Height="20" Grid.Column="0"/>
+
+        <Button x:Name="ReadBtn" Content="解析数据" VerticalAlignment="Bottom" Margin="10,0,10,30" Grid.Column="1" Grid.Row="1" Height="20" Click="ReadBtn_Click"></Button>
+        <Button x:Name="LeanBtn" Content="学习" VerticalAlignment="Bottom" Margin="10,0,10,0" Grid.Column="1" Grid.Row="1" Height="20" Click="LeanBtn_Click"></Button>
+        <Label x:Name="ShowLabel" Content="" Grid.Row="1" Margin="0,0,0,0" VerticalAlignment="Top" Height="100"/>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+                <RowDefinition/>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+            <Image x:Name="Img1" Grid.Row="0" Grid.Column="0" Width="140" Height="140"/>
+            <Image x:Name="Img2" Grid.Row="0" Grid.Column="1" Width="140" Height="140"/>
+            <Image x:Name="Img3" Grid.Row="0" Grid.Column="2" Width="140" Height="140"/>
+            <Image x:Name="Img4" Grid.Row="1" Grid.Column="0" Width="140" Height="140"/>
+            <Image x:Name="Img5" Grid.Row="1" Grid.Column="1" Width="140" Height="140"/>
+            <Image x:Name="Img6" Grid.Row="1" Grid.Column="2" Width="140" Height="140"/>
+            <Image x:Name="Img7" Grid.Row="2" Grid.Column="0" Width="140" Height="140"/>
+            <Image x:Name="Img8" Grid.Row="2" Grid.Column="1" Width="140" Height="140"/>
+            <Image x:Name="Img9" Grid.Row="2" Grid.Column="2" Width="140" Height="140"/>
+        </Grid>
+    </Grid>
+</Window>
