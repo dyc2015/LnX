@@ -56,6 +56,11 @@ namespace LnX.ML.CNN
         /// </summary>
         double[][][,] Datas { get; }
 
+        /// <summary>
+        /// 数据长度（数量*维度*宽*高）
+        /// </summary>
+        int Length { get; }
+
         ///// <summary>
         ///// 获取范围数据
         ///// </summary>
@@ -78,14 +83,19 @@ namespace LnX.ML.CNN
         public int Num { get; }
         public double[][][,] Datas { get; }
 
+        public int Length => Num * Dimension * Width * Height;
+
         public double this[int n, int d, int w, int h] { get => Datas[n][d][w, h]; set => Datas[n][d][w, h] = value; }
         public double[,] this[int n, int d] { get => Datas[n][d]; set => Datas[n][d] = value; }
         public double[][,] this[int n] { get => Datas[n]; set => Datas[n] = value; }
 
+        /// <summary>
+        /// 
+        /// </summary>
         /// <param name="width"></param>
         /// <param name="height"></param>
-        /// <param name="dimension"></param>
         /// <param name="num"></param>
+        /// <param name="dimension"></param>
         public Tensor(int width, int height, int num = 1, int dimension = 1)
         {
             Width = width;
@@ -99,29 +109,9 @@ namespace LnX.ML.CNN
                 Datas[i] = new double[dimension][,];
                 for (int j = 0; j < dimension; j++)
                 {
-                    Datas[i][j] = new double[width, height];
+                    Datas[i][j] = new double[height, width];
                 }
             }
         }
-
-        //public double[,] GetPlane(int num = 0, int dimension = 0, int width = 0, int height = 0)
-        //{
-        //    var result = Datas[num][dimension];
-        //    if (width > 0 || height > 0)
-        //    {
-        //        var tmp = new double[width, height];
-        //        for (int i = 0; i < width; i++)
-        //        {
-        //            for (int j = 0; j < height; j++)
-        //            {
-        //                tmp[i, j] = result[i, j];
-        //            }
-        //        }
-
-        //        return tmp;
-        //    }
-
-        //    return result;
-        //}
     }
 }

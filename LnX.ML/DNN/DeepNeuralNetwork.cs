@@ -1,4 +1,5 @@
-﻿using LnX.ML.CNN;
+﻿using LiveChartsCore.Defaults;
+using LnX.ML.CNN;
 using System;
 using System.Collections.Generic;
 using System.Drawing.Drawing2D;
@@ -12,7 +13,11 @@ namespace LnX.ML.DNN
     {
         public static DeepNeuralNetworkBuilder Create() => new();
 
-        int[]? layerConfig;
+        ///// <summary>
+        ///// 层级配置
+        ///// </summary>
+        //public int[] LayerConfig => layerConfig;
+        int[] layerConfig;
         /// <summary>
         /// 设置分层配置
         /// </summary>
@@ -27,7 +32,7 @@ namespace LnX.ML.DNN
             return this;
         }
 
-        ILossFunction? errorFunction;
+        ILossFunction errorFunction;
         /// <summary>
         /// 设置误差函数
         /// </summary>
@@ -39,7 +44,7 @@ namespace LnX.ML.DNN
             return this;
         }
 
-        IDifferentiableFunction<double>? activationFunction;
+        IDifferentiableFunction<double> activationFunction;
         /// <summary>
         /// 设置激活函数
         /// </summary>
@@ -77,7 +82,7 @@ namespace LnX.ML.DNN
 
         int maxEpcoh = 10000;
         /// <summary>
-        /// 设置最大循环次数
+        /// 设置训练最大循环次数，大于这个次数将结束训练
         /// </summary>
         /// <param name="maxEpcoh"></param>
         /// <returns></returns>
@@ -88,8 +93,9 @@ namespace LnX.ML.DNN
         }
 
         double minError = 0.001;
+
         /// <summary>
-        /// 设置最小误差
+        /// 设置最小误差，小于这个误差将结束训练
         /// </summary>
         /// <param name="minError"></param>
         /// <returns></returns>
@@ -224,12 +230,12 @@ namespace LnX.ML.DNN
         /// <summary>
         /// 输入神经元
         /// </summary>
-        InputNeuron[] InputNeurons { get; } = inputNeurons;
+        public InputNeuron[] InputNeurons { get; } = inputNeurons;
 
         /// <summary>
         /// 输出神经元
         /// </summary>
-        OutputNeuron[] OutputNeurons { get; } = outputNeuron;
+        public OutputNeuron[] OutputNeurons { get; } = outputNeuron;
 
         /// <summary>
         /// 误差函数
@@ -267,7 +273,7 @@ namespace LnX.ML.DNN
 
             for (var i = 0; i < Output.Length; i++)
             {
-                OutputNeurons[i].ErrorSum += softmaxFunction.Differentiate((i, SoftmaxOutput, deriveFromOutput));//ds/da(l)
+                OutputNeurons[i].RecordedError(softmaxFunction.Differentiate((i, SoftmaxOutput, deriveFromOutput)));//ds/da(l)
             }
         }
 
@@ -282,7 +288,6 @@ namespace LnX.ML.DNN
             int epcoh = 0, dataLen = datas.GetLength(0);
             while (epcoh < maxEpcoh)
             {
-                var trainCount = 0;
                 for (int i = 0; i < dataLen; i++)
                 {
                     var len = i + 1;
@@ -291,21 +296,8 @@ namespace LnX.ML.DNN
                     Train(datas[i], labels[i]);
 
                     tmpError += ErrorFunction.Compute((SoftmaxOutput, labels[i]));
-                    trainCount++;
 
-                    if (isUpdate)
-                    {
-                        foreach (var outputNeuron in OutputNeurons)
-                        {
-                            var errorAvg = outputNeuron.ErrorSum / trainCount;
-                            outputNeuron.UpdateError(errorAvg);//更新误差
-                            outputNeuron.UpdateWeight(alpha);//更新权重
-
-                            outputNeuron.ErrorSum = 0;
-                        }
-
-                        trainCount = 0;
-                    }
+                    if (isUpdate) BackPropagation();
                 }
 
                 tmpError /= dataLen;
@@ -345,6 +337,17 @@ namespace LnX.ML.DNN
             for (int i = 0; i < Output.Length; i++)
             {
                 SoftmaxOutput[i] = softmaxFunction.Compute((i, Output));
+            }
+        }
+
+        /// <summary>
+        /// 进行反向传播
+        /// </summary>
+        public void BackPropagation()
+        {
+            foreach (var outputNeuron in OutputNeurons)
+            {
+                outputNeuron.BackPropagation(alpha);//更新误差
             }
         }
 
@@ -541,7 +544,38 @@ namespace LnX.ML.DNN
         Synapse[] frontSynapses)
         : HiddenNeuron(activationFunction, frontSynapses, [])
     {
-        public double ErrorSum = 0;
+        double errorSum = 0;
+        int errorCount = 0;
+
+        /// <summary>
+        /// 记录误差
+        /// </summary>
+        /// <param name="error"></param>
+        public void RecordedError(double error)
+        {
+            errorSum += error;
+            errorCount++;
+        }
+
+        /// <summary>
+        /// 清除误差记录
+        /// </summary>
+        public void ClearErrorRecords()
+        {
+            errorSum = 0;
+            errorCount = 0;
+        }
+
+        /// <summary>
+        /// 反向传播
+        /// </summary>
+        /// <param name="alpha">学习率</param>
+        public void BackPropagation(double alpha)
+        {
+            UpdateError(errorSum / errorCount);
+            UpdateWeight(alpha);
+            ClearErrorRecords();
+        }
 
         public override string ToString()
         {

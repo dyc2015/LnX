@@ -52,5 +52,64 @@ namespace LnX.ML.Utils
 
             return result;
         }
+
+        /// <summary>
+        /// 展平张量
+        /// </summary>
+        /// <param name="tensor"></param>
+        /// <returns></returns>
+        public static ITensor FillNew(this IEnumerable<double> array, int width, int height, int num, int dimension)
+        {
+            var result = new Tensor(width, height, num, dimension);
+
+            FillTo(array, result);
+
+            return result;
+        }
+
+        /// <summary>
+        /// 展平张量
+        /// </summary>
+        /// <param name="tensor"></param>
+        /// <returns></returns>
+        public static void FillTo(this IEnumerable<double> array, ITensor tensor)
+        {
+            int dimension = tensor.Dimension,
+                width = tensor.Width,
+                height = tensor.Height,
+                dc = dimension * width * height,
+                hc = width * height,
+                w = 0, h = 0, n = 0, d = 0;
+            for (int i = 0; i < array.Count(); i++)
+            {
+                var t = i;
+                if (t / dc > 0)
+                {
+                    t %= dc;
+                    if (t == 0)
+                    {
+                        d = 0; w = 0; h = 0; n++;
+                    }
+                }
+
+                if (t / hc > 0)
+                {
+                    t %= hc;
+                    if (t == 0)
+                    {
+                       w = 0; h = 0; d++;
+                    }
+                }
+
+                if (t / width > 0 && t % width == 0)
+                {
+                    h = 0; w++;
+                }
+
+                tensor[n, d, w, h] = array.ElementAt(i);
+
+                h++;
+            }
+        }
     }
 }

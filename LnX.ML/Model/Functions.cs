@@ -37,6 +37,32 @@ namespace LnX.ML
         double Differentiate(T2 input);
     }
 
+    public interface IDifferentiableFunction<T1, T2, T3> : IFunction<T1>
+    {
+        /// <summary>
+        /// 求导
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        T3 Differentiate(T2 input);
+    }
+
+    /// <summary>
+    /// 误差函数
+    /// </summary>
+    public interface ILossFunction : IDifferentiableFunction<(double[], double[]), (int, double[], double[])>
+    {
+
+    }
+
+    /// <summary>
+    /// 池化函数
+    /// </summary>
+    public interface IPoolingFunction : IDifferentiableFunction<double[,], (double[], double), (int, int, double)>
+    {
+
+    }
+
     public class Function
     {
         public static ReLUFunction CreateReLU() => new();
@@ -73,14 +99,29 @@ namespace LnX.ML
     {
         public double Compute(double[,] input)
         {
-            var result = 0d;
+            double result = double.NaN;
 
             input.ForEach(x =>
             {
-                if (x > result) result = x;
+                if (double.IsNaN(result)) result = x;
+                else if (x > result) result = x;
             });
 
             return result;
+        }
+
+        public (int, int, double) Differentiate((double[], double) input)
+        {
+            int w = 0, h = 0;
+            for (int i = 0; i < input.Item1.GetLength(0); i++)
+            {
+                for (int j = 0; j < input.Item1.GetLength(1); j++)
+                {
+
+                }
+            }
+
+            return (1, 1, 1);
         }
     }
 
@@ -88,7 +129,7 @@ namespace LnX.ML
     /// <summary>
     /// 平均值值池化函数
     /// </summary>
-    public class AvgPoolingFunction : IFunction<double[,]>
+    public class AvgPoolingFunction : IPoolingFunction
     {
 
         public double Compute(double[,] input)
@@ -101,6 +142,20 @@ namespace LnX.ML
             });
 
             return result / input.Length;
+        }
+
+        public (int, int, double) Differentiate((double[], double) input)
+        {
+            int w = 0, h = 0;
+            for (int i = 0; i < input.Item1.GetLength(0); i++)
+            {
+                for (int j = 0; j < input.Item1.GetLength(1); j++)
+                {
+
+                }
+            }
+
+            return (1, 1, 1);
         }
     }
 
@@ -148,14 +203,6 @@ namespace LnX.ML
         {
             return 1;
         }
-    }
-
-    /// <summary>
-    /// 误差函数
-    /// </summary>
-    public interface ILossFunction : IDifferentiableFunction<(double[], double[]), (int, double[], double[])>
-    {
-
     }
 
     /// <summary>

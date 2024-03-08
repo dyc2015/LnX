@@ -30,7 +30,7 @@ namespace LnX.ML.Utils
                 {
                     for (int j = 0; j < h; j++)
                     {
-                        bytes[i * w + j] = (byte)(tensor[0, 0, i, j] * 250);
+                        bytes[i * w + j] = (byte)(tensor[n, 0, i, j] * 250);
                     }
                 }
 

@@ -1,4 +1,5 @@
 ﻿using LnX.ML.CNN;
+using LnX.ML.DNN;
 using LnX.ML.Utils;
 using Microsoft.ML;
 using Microsoft.ML.Data;
@@ -43,26 +44,31 @@ namespace LnX.ML
         public void Test()
         {
             var context = new TransformContext(TrainData[0].Pixels, TrainData[0].Labels);
-            var transformer = new ConvolutionalTransformer(KernelUtil.Create(4, 4, 3), Function.CreateReLU(), 1);
+            var transformer = new ConvolutionalTransformer(KernelUtil.Create(5, 5, 3), Function.CreateReLU());
             transformer.Transform(context);
 
-            var sources = ImageSourceUtil.CreateBitmapSource(context.Output);
+            var sources = ImageSourceUtil.CreateBitmapSource(transformer.Output);
             TestImg.Source = sources[0];
             TestImg1.Source = sources[1];
             TestImg2.Source = sources[2];
 
-            var poolingTransformer = new PoolingTransformer(3, 3, Function.CreateMaxPooling());
+            var poolingTransformer = new PoolingTransformer(transformer, 3, 3, Function.CreateMaxPooling());
             poolingTransformer.Transform(context);
 
-            sources = ImageSourceUtil.CreateBitmapSource(context.Output);
+            sources = ImageSourceUtil.CreateBitmapSource(poolingTransformer.Output);
             TestImg3.Source = sources[0];
             TestImg4.Source = sources[1];
             TestImg5.Source = sources[2];
 
-            var fullyConnectTransformer = new FullyConnectTransformer();
+            var fullyConnectTransformer = new FullyConnectTransformer(poolingTransformer, 
+                DeepNeuralNetworkBuilder.Create()
+                .SetLayerConfig(192, 10, 10)
+                .SetActivationFunction(Function.CreateReLU())
+                .SetErrorFunction(Function.CreateNCrossEntropy())
+                .Build());
             fullyConnectTransformer.Transform(context);
 
-            var t = context.Output;
+            var t = fullyConnectTransformer.Output;
         }
     }
 }
