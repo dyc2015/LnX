@@ -19,11 +19,24 @@ namespace LnX.ML.Utils
         {
             if (source == null) return;
 
+            source.ForEach((i, j, x) => action(x));
+        }
+
+        /// <summary>
+        /// 循环所有元素（一行行读）
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="source"></param>
+        /// <param name="action"></param>
+        public static void ForEach<T>(this T[,] source, Action<int, int ,T> action)
+        {
+            if (source == null) return;
+
             for (int i = 0; i < source.GetLength(0); i++)
             {
                 for (var j = 0; j < source.GetLength(1); j++)
                 {
-                    action(source[i, j]);
+                    action(i, j, source[i, j]);
                 }
             }
         }

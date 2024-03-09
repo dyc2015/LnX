@@ -44,13 +44,13 @@ namespace LnX.ML.DNN
             return this;
         }
 
-        IDifferentiableFunction<double> activationFunction;
+        IActivationFunction activationFunction;
         /// <summary>
         /// 设置激活函数
         /// </summary>
         /// <param name="function"></param>
         /// <returns></returns>
-        public DeepNeuralNetworkBuilder SetActivationFunction(IDifferentiableFunction<double> function)
+        public DeepNeuralNetworkBuilder SetActivationFunction(IActivationFunction function)
         {
             activationFunction = function;
             return this;
@@ -93,7 +93,6 @@ namespace LnX.ML.DNN
         }
 
         double minError = 0.001;
-
         /// <summary>
         /// 设置最小误差，小于这个误差将结束训练
         /// </summary>
@@ -115,7 +114,7 @@ namespace LnX.ML.DNN
             var outputNeurons = new OutputNeuron[layerConfig[^1]];
             var random = new Random();
             var function = activationFunction ?? Function.CreateReLU();
-            var normalFunction = Function.CreateNormal();
+            //var normalFunction = Function.CreateNormal();
 
             for (int i = 0; i < layerConfig.Length; i++)
             {
@@ -163,7 +162,7 @@ namespace LnX.ML.DNN
 
                 if (!isEnd)
                 {
-                    var biasNeuron = new InputNeuron(new Synapse[nextLen]);
+                    var biasNeuron = new InputNeuron(new Synapse[nextLen], true);
                     neurons[i][currentLen] = biasNeuron;
 
                     if (isStart)
@@ -173,7 +172,7 @@ namespace LnX.ML.DNN
                 }
             }
 
-            return new DeepNeuralNetwork(inputNeurons, outputNeurons, errorFunction ?? Function.CreateNCrossEntropy(),
+            return new DeepNeuralNetwork(inputNeurons, outputNeurons, errorFunction ?? Function.CreateCrossEntropy(),
                 neurons, batchSize, alpha, maxEpcoh, minError);
         }
     }
@@ -284,6 +283,8 @@ namespace LnX.ML.DNN
         /// <param name="labels"></param>
         public void Train(double[][] datas, double[][] labels, Action? onEpcohEnd = null)
         {
+            Errors.Clear();
+
             double tmpError = 0, lastError = -1;
             int epcoh = 0, dataLen = datas.GetLength(0);
             while (epcoh < maxEpcoh)
@@ -303,6 +304,8 @@ namespace LnX.ML.DNN
                 tmpError /= dataLen;
 
                 if (Math.Abs(tmpError) <= minError) return;
+
+                if (tmpError == lastError) return;//梯度消失
 
                 if (lastError != -1 && tmpError - lastError > 0)//误差变大减小学习率
                 {
@@ -345,6 +348,8 @@ namespace LnX.ML.DNN
         /// </summary>
         public void BackPropagation()
         {
+            OutputNeurons.FirstOrDefault()?.ResetError();//重置误差
+
             foreach (var outputNeuron in OutputNeurons)
             {
                 outputNeuron.BackPropagation(alpha);//更新误差
@@ -405,11 +410,27 @@ namespace LnX.ML.DNN
         /// </summary>
         Synapse[] RearSynapses { get; }
 
+        /// <summary>
+        /// 更新误差
+        /// </summary>
+        /// <param name="error"></param>
         void UpdateError(double error);
 
+        /// <summary>
+        /// 更新权重
+        /// </summary>
+        /// <param name="alpha"></param>
         void UpdateWeight(double alpha);
 
+        /// <summary>
+        /// 计算输出
+        /// </summary>
         void ComputeOutput();
+
+        /// <summary>
+        /// 重置误差
+        /// </summary>
+        void ResetError();
     }
 
     public class Synapse(double weight, INeuron frontNeuron, INeuron rearNeuron)
@@ -435,7 +456,7 @@ namespace LnX.ML.DNN
         /// </summary>
         public void UpdateWeight(double alpha)
         {
-            weight -= alpha * RearNeuron.Error * FrontNeuron.Output;//dz/dw
+            weight -= alpha * RearNeuron.Error * FrontNeuron.Output;//alpha * dL/ds * ds/da(l) * da(l)/dz(l) * dz(l)/dw(l)
         }
     }
 
@@ -445,7 +466,7 @@ namespace LnX.ML.DNN
     /// <param name="activationFunction"></param>
     /// <param name="frontSynapses"></param>
     /// <param name="rearSynapses"></param>
-    public class HiddenNeuron(IDifferentiableFunction<double> activationFunction,
+    public class HiddenNeuron(IActivationFunction activationFunction,
         Synapse[] frontSynapses,
         Synapse[] rearSynapses) : INeuron
     {
@@ -456,21 +477,20 @@ namespace LnX.ML.DNN
         public double Output => output;
 
         double error = 0;
-
         public double Error => error;
 
-        public IDifferentiableFunction<double> ActivationFunction { get; } = activationFunction;
+        public IActivationFunction ActivationFunction { get; } = activationFunction;
 
         public Synapse[] FrontSynapses { get; } = frontSynapses;
         public Synapse[] RearSynapses { get; } = rearSynapses;
 
         public virtual void UpdateError(double error)
         {
-            this.error = error * ActivationFunction.Differentiate(Input);//da(l)/dz(l)
+            this.error += error * ActivationFunction.Differentiate(Input);//dL/ds * ds/da(l) * da(l)/dz(l)
 
             foreach (var x in FrontSynapses)
             {
-                x.FrontNeuron.UpdateError(this.error);
+                x.FrontNeuron.UpdateError(this.error * x.Weight);//dz(l)/da(l-1)
             }
         }
 
@@ -480,11 +500,6 @@ namespace LnX.ML.DNN
             {
                 x.UpdateWeight(alpha);
             }
-        }
-
-        public override string ToString()
-        {
-            return $"{nameof(HiddenNeuron)}:{Input}|{Output}({string.Join(",", RearSynapses.Select(x => x.Weight))})";
         }
 
         public void ComputeOutput()
@@ -498,13 +513,28 @@ namespace LnX.ML.DNN
 
             output = ActivationFunction.Compute(input);
         }
+
+        public void ResetError()
+        {
+            error = 0;
+
+            foreach (var synapse in FrontSynapses)
+            {
+                synapse.FrontNeuron.ResetError();
+            }
+        }
+
+        public override string ToString()
+        {
+            return $"{nameof(HiddenNeuron)}:{Input}|{Output}({string.Join(",", RearSynapses.Select(x => x.Weight))})";
+        }
     }
 
     /// <summary>
     /// 输入神经元
     /// </summary>
     /// <param name="rearSynapses"></param>
-    public class InputNeuron(Synapse[] rearSynapses, double input = 1) : INeuron
+    public class InputNeuron(Synapse[] rearSynapses, bool isBias = false, double input = 1) : INeuron
     {
         public double Input { get; set; } = input;
         public double Output => Input;
@@ -514,9 +544,14 @@ namespace LnX.ML.DNN
         public Synapse[] FrontSynapses { get; } = [];
         public Synapse[] RearSynapses { get; } = rearSynapses;
 
+        /// <summary>
+        /// 是否Bias
+        /// </summary>
+        public bool IsBias { get; } = isBias;
+
         public void UpdateError(double error)
         {
-            this.error = error;
+            this.error += error;
         }
 
         public void UpdateWeight(double alpha)
@@ -527,6 +562,11 @@ namespace LnX.ML.DNN
         public void ComputeOutput()
         {
 
+        }
+
+        public void ResetError()
+        {
+            error = 0;
         }
 
         public override string ToString()
@@ -540,9 +580,8 @@ namespace LnX.ML.DNN
     /// </summary>
     /// <param name="activationFunction"></param>
     /// <param name="frontSynapses"></param>
-    public class OutputNeuron(IDifferentiableFunction<double> activationFunction,
-        Synapse[] frontSynapses)
-        : HiddenNeuron(activationFunction, frontSynapses, [])
+    public class OutputNeuron(IActivationFunction activationFunction,
+        Synapse[] frontSynapses) : HiddenNeuron(activationFunction, frontSynapses, [])
     {
         double errorSum = 0;
         int errorCount = 0;

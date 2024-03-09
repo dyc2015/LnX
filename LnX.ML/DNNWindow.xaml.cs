@@ -103,9 +103,12 @@ namespace LnX.ML
         DeepNeuralNetwork deepNeuralNetwork;
         private void TrainBtn_Click(object sender, RoutedEventArgs e)
         {
-            deepNeuralNetwork = DeepNeuralNetworkBuilder.Create()
+            deepNeuralNetwork ??= DeepNeuralNetworkBuilder.Create()
             .SetLayerConfig(2, 2)
-            .SetMaxEpcoh(1000)
+            .SetActivationFunction(Function.CreateReLU())
+            //.SetAlpha(0.001)
+            //.SetMaxEpcoh(2000)
+            .SetBatchSize(32)
             .Build();
 
             new Thread(() =>
@@ -179,6 +182,7 @@ namespace LnX.ML
             var output = deepNeuralNetwork.SoftmaxOutput;
 
             TrainLog.Text += $"网络结构：{str}， 预测结果：{string.Join(",", output)}\n";
+            TrainLog.ScrollToEnd();
         }
     }
 

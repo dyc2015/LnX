@@ -7,17 +7,17 @@ using System.Threading.Tasks;
 
 namespace LnX.ML
 {
-    public interface IFunction<T>
+    public interface IFunction<T, T1>
     {
         /// <summary>
         /// 计算
         /// </summary>
         /// <param name="input"></param>
         /// <returns></returns>
-        double Compute(T input);
+        T1 Compute(T input);
     }
 
-    public interface IDifferentiableFunction<T1> : IFunction<T1>
+    public interface IDifferentiableFunction<T1> : IFunction<T1, double>
     {
         /// <summary>
         /// 求导
@@ -27,7 +27,7 @@ namespace LnX.ML
         double Differentiate(T1 input);
     }
 
-    public interface IDifferentiableFunction<T1, T2> : IFunction<T1>
+    public interface IDifferentiableFunction<T1, T2> : IFunction<T1, double>
     {
         /// <summary>
         /// 求导
@@ -37,7 +37,17 @@ namespace LnX.ML
         double Differentiate(T2 input);
     }
 
-    public interface IDifferentiableFunction<T1, T2, T3> : IFunction<T1>
+    public interface IDifferentiableFunction<T1, T2, T3> : IFunction<T1, double>
+    {
+        /// <summary>
+        /// 求导
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        T3 Differentiate(T2 input);
+    }
+
+    public interface IDifferentiableFunction<T1, T2, T3, T4> : IFunction<T1, T4>
     {
         /// <summary>
         /// 求导
@@ -56,46 +66,73 @@ namespace LnX.ML
     }
 
     /// <summary>
+    /// 误差函数
+    /// </summary>
+    public interface IActivationFunction : IDifferentiableFunction<double>
+    {
+
+    }
+
+    /// <summary>
     /// 池化函数
     /// </summary>
-    public interface IPoolingFunction : IDifferentiableFunction<double[,], (double[], double), (int, int, double)>
+    public interface IPoolingFunction : IDifferentiableFunction<double[,], double[,], double[,]>
     {
 
     }
 
     public class Function
     {
-        public static ReLUFunction CreateReLU() => new();
+        public static ReLUFunction CreateReLU(double k = 0) => new(k);
         public static MaxPoolingFunction CreateMaxPooling() => new();
         public static AvgPoolingFunction CreateAvgPooling() => new();
         public static SoftmaxFunction CreateSoftMax() => new();
         public static NormalFunction CreateNormal() => new();
         public static MeanSquaredLossFunction CreateMSE() => new();
-        public static CrossEntropyLossFunction CreateNCrossEntropy() => new();
+        public static CrossEntropyLossFunction CreateCrossEntropy() => new();
     }
 
+    #region 激活函数
     /// <summary>
-    /// ReLU函数
+    /// y = x
     /// </summary>
-    public class ReLUFunction : IDifferentiableFunction<double>
+    public class NormalFunction : IActivationFunction
     {
         public double Compute(double input)
         {
-            if (input < 0) return 0;
             return input;
         }
 
         public double Differentiate(double input)
         {
-            if (input < 0) return 0;
             return 1;
         }
     }
 
     /// <summary>
+    /// ReLU函数
+    /// </summary>
+    public class ReLUFunction(double k = 0) : IActivationFunction
+    {
+        private readonly double k = k;
+
+        public double Compute(double input)
+        {
+            if (input < 0) return input * k;
+            return input;
+        }
+
+        public double Differentiate(double input)
+        {
+            if (input < 0) return k;
+            return 1;
+        }
+    }
+    #endregion
+    /// <summary>
     /// 最大值池化函数
     /// </summary>
-    public class MaxPoolingFunction : IFunction<double[,]>
+    public class MaxPoolingFunction : IPoolingFunction
     {
         public double Compute(double[,] input)
         {
@@ -110,18 +147,16 @@ namespace LnX.ML
             return result;
         }
 
-        public (int, int, double) Differentiate((double[], double) input)
+        public double[,] Differentiate(double[,] input)
         {
-            int w = 0, h = 0;
-            for (int i = 0; i < input.Item1.GetLength(0); i++)
+            var result = new double[input.GetLength(0), input.GetLength(1)];
+            var max = Compute(input);
+            input.ForEach((w, h, x) =>
             {
-                for (int j = 0; j < input.Item1.GetLength(1); j++)
-                {
+                result[w, h] = x == max ? 1 : 0;
+            });
 
-                }
-            }
-
-            return (1, 1, 1);
+            return result;
         }
     }
 
@@ -136,7 +171,7 @@ namespace LnX.ML
         {
             var result = 0d;
 
-            input.ForEach(x =>
+            input.ForEach((x) =>
             {
                 result += x;
             });
@@ -144,18 +179,15 @@ namespace LnX.ML
             return result / input.Length;
         }
 
-        public (int, int, double) Differentiate((double[], double) input)
+        public double[,] Differentiate(double[,] input)
         {
-            int w = 0, h = 0;
-            for (int i = 0; i < input.Item1.GetLength(0); i++)
+            var result = new double[input.GetLength(0), input.GetLength(1)];
+            result.ForEach((w, h, x) =>
             {
-                for (int j = 0; j < input.Item1.GetLength(1); j++)
-                {
+                result[w, h] = 1 / input.Length;
+            });
 
-                }
-            }
-
-            return (1, 1, 1);
+            return result;
         }
     }
 
@@ -186,22 +218,6 @@ namespace LnX.ML
             }
 
             return result;
-        }
-    }
-
-    /// <summary>
-    /// y = x
-    /// </summary>
-    public class NormalFunction : IDifferentiableFunction<double>
-    {
-        public double Compute(double input)
-        {
-            return input;
-        }
-
-        public double Differentiate(double input)
-        {
-            return 1;
         }
     }
 
@@ -237,8 +253,6 @@ namespace LnX.ML
     {
         public double Compute((double[], double[]) input)
         {
-            if (input.Item1.Length != input.Item2.Length) throw new Exception("参数错误");
-
             var sum = 0d;
             for (int i = 0; i < input.Item1.Length; i++)
             {

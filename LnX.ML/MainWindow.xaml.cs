@@ -36,6 +36,7 @@ namespace LnX.ML
         {
             var window = new CNNWindow();
             window.ShowDialog();
+
         }
     }
 }

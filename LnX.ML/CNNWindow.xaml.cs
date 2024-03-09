@@ -36,6 +36,12 @@ namespace LnX.ML
         /// </summary>
         Stream testDataStream, testLabelStream, trainDataStream, trainLabelStream;
 
+        private void Window_Closed(object sender, EventArgs e)
+        {
+            trainData = null;
+            testData = null;
+        }
+
         private void DataFolderPicker_Click(object sender, RoutedEventArgs e)
         {
             var dlg = new OpenFolderDialog();

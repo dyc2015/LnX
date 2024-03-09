@@ -26,7 +26,7 @@ namespace LnX.ML
                 {
                     for (var k = 0; k < 28; k++)
                     {
-                        pixels[0, 0, j, k] = data.ReadByte() / 250d;
+                        pixels[0, 0, j, k] = data.ReadByte() / 255d;
                     }
                 }
 

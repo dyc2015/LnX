@@ -12,20 +12,6 @@ namespace LnX.ML.CNN
     /// </summary>
     public class ConvolutionalNeuralNetwork
     {
-        ///// <summary>
-        ///// 创建一个卷积变换
-        ///// </summary>
-        ///// <param name="kernel"></param>
-        ///// <param name="stride"></param>
-        ///// <returns></returns>
-        //public static ConvolutionalTransformer ConvolutionalTransformer(Tensor kernel, IDifferentiableFunction<double> function, int stride = 1)
-        //{
-        //    return new ConvolutionalTransformer(kernel, function, stride);
-        //}
-    }
-
-    public interface INeuron
-    {
 
     }
 }

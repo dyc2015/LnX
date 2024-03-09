@@ -60,16 +60,6 @@ namespace LnX.ML.CNN
         /// 数据长度（数量*维度*宽*高）
         /// </summary>
         int Length { get; }
-
-        ///// <summary>
-        ///// 获取范围数据
-        ///// </summary>
-        ///// <param name="width">宽</param>
-        ///// <param name="height">高</param>
-        ///// <param name="dimension">维度</param>
-        ///// <param name="num">数量</param>
-        ///// <returns></returns>
-        //double[,] GetDataRange(int width, int height, int num = 0, int dimension = 0);
     }
 
     /// <summary>
