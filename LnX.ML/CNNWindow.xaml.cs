@@ -104,15 +104,15 @@ namespace LnX.ML
             using (testLabelStream)
                 testData = MinstReader.Read(testDataStream, testLabelStream);
 
-            Img1.Source = ImageSourceUtil.CreateBitmapSource(trainData[0].Pixels)[0];
-            Img2.Source = ImageSourceUtil.CreateBitmapSource(trainData[1].Pixels)[0];
-            Img3.Source = ImageSourceUtil.CreateBitmapSource(trainData[2].Pixels)[0];
-            Img4.Source = ImageSourceUtil.CreateBitmapSource(trainData[3].Pixels)[0];
-            Img5.Source = ImageSourceUtil.CreateBitmapSource(trainData[4].Pixels)[0];
-            Img6.Source = ImageSourceUtil.CreateBitmapSource(testData[5].Pixels)[0];
-            Img7.Source = ImageSourceUtil.CreateBitmapSource(testData[6].Pixels)[0];
-            Img8.Source = ImageSourceUtil.CreateBitmapSource(testData[7].Pixels)[0];
-            Img9.Source = ImageSourceUtil.CreateBitmapSource(testData[8].Pixels)[0];
+            //Img1.Source = ImageSourceUtil.CreateBitmapSource(trainData[0].Pixels)[0];
+            //Img2.Source = ImageSourceUtil.CreateBitmapSource(trainData[1].Pixels)[0];
+            //Img3.Source = ImageSourceUtil.CreateBitmapSource(trainData[2].Pixels)[0];
+            //Img4.Source = ImageSourceUtil.CreateBitmapSource(trainData[3].Pixels)[0];
+            //Img5.Source = ImageSourceUtil.CreateBitmapSource(trainData[4].Pixels)[0];
+            //Img6.Source = ImageSourceUtil.CreateBitmapSource(testData[5].Pixels)[0];
+            //Img7.Source = ImageSourceUtil.CreateBitmapSource(testData[6].Pixels)[0];
+            //Img8.Source = ImageSourceUtil.CreateBitmapSource(testData[7].Pixels)[0];
+            //Img9.Source = ImageSourceUtil.CreateBitmapSource(testData[8].Pixels)[0];
         }
     }
 }

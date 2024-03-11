@@ -104,30 +104,8 @@ namespace LnX.ML.CNN
         public ITensor Error => error;
         protected ITensor error;
 
-        ITransformer frontTransformer;
-        public ITransformer FrontTransformer
-        {
-            get => frontTransformer;
-            set
-            {
-                frontTransformer = value;
-
-                if (value != null)
-                {
-                    value.RearTransformer = this;
-                }
-            }
-        }
+        public ITransformer FrontTransformer { get; set; }
         public ITransformer RearTransformer { get; set; }
-
-        public TransformerBase(ITransformer frontTransformer)
-        {
-            this.frontTransformer = frontTransformer;
-            if (frontTransformer != null)
-            {
-                frontTransformer.RearTransformer = this;
-            }
-        }
 
         public void Transform(TransformContext context)
         {
@@ -157,7 +135,7 @@ namespace LnX.ML.CNN
         public void BackPropagation(TransformContext context)
         {
             DoBackPropagation(context);
-            frontTransformer?.BackPropagation(context);
+            FrontTransformer?.BackPropagation(context);
         }
 
         protected abstract void DoTransform(TransformContext context);
@@ -171,8 +149,7 @@ namespace LnX.ML.CNN
     /// <param name="stride"></param>
     public class ConvolutionalTransformer(ITensor kernel,
         IActivationFunction function,
-        int stride = 1,
-        ITransformer front = null) : TransformerBase(front)
+        int stride = 1) : TransformerBase
     {
         /// <summary>
         /// 卷积核
@@ -247,9 +224,8 @@ namespace LnX.ML.CNN
         }
     }
 
-    public class PoolingTransformer(ITransformer front,
-        int width, int height,
-        IPoolingFunction function) : TransformerBase(front)
+    public class PoolingTransformer(int width, int height,
+        IPoolingFunction function) : TransformerBase
     {
         /// <summary>
         /// 池化窗口宽度
@@ -319,23 +295,33 @@ namespace LnX.ML.CNN
     /// 全连接转换
     /// </summary>
     /// <param name="outputNum">输出结果数量</param>
-    public class FullyConnectTransformer(ITransformer front,
-        DeepNeuralNetwork deepNeuralNetwork) : TransformerBase(front)
+    public class FullyConnectTransformer(DeepNeuralNetwork deepNeuralNetwork) : TransformerBase
     {
+        /// <summary>
+        /// 当次损失
+        /// </summary>
+        public double Cost => deepNeuralNetwork.Cost;
+
+        double[] flattenInput = null;
         protected override void DoBackPropagation(TransformContext context)
         {
             deepNeuralNetwork.BackPropagation();
 
-            deepNeuralNetwork.InputNeurons.Where(x => !x.IsBias).Select(x => x.Error).FillTo(Error);
+            deepNeuralNetwork.InputNeurons.Where(x => !x.IsBias).Select(x => x.Error).FillTo(error);
         }
 
         protected override void DoTransform(TransformContext context)
         {
-            SetOutput(context.Labels.Length, 1);
+            SetOutput(deepNeuralNetwork.Output.Length, 1);
 
-            var flattenInput = CollectUtil.Flatten(input);
+            flattenInput = input.Flatten(flattenInput);
 
-            deepNeuralNetwork.Train(flattenInput, context.Labels);
+            deepNeuralNetwork.Compute(flattenInput);
+
+            if(context.Labels != null && context.Labels.Length > 0)
+            {
+                deepNeuralNetwork.ComputeCost(context.Labels);
+            }
 
             for (int i = 0; i < deepNeuralNetwork.Output.Length; i++)
             {

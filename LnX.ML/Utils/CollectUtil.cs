@@ -42,13 +42,45 @@ namespace LnX.ML.Utils
         }
 
         /// <summary>
+        /// 循环所有元素（一行行读）
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="source"></param>
+        /// <param name="action"></param>
+        public static void ForEach<T>(this T[][] source, Action<T> action)
+        {
+            if (source == null) return;
+
+            source.ForEach((i, j, x) => action(x));
+        }
+
+        /// <summary>
+        /// 循环所有元素（一行行读）
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="source"></param>
+        /// <param name="action"></param>
+        public static void ForEach<T>(this T[][] source, Action<int, int, T> action)
+        {
+            if (source == null) return;
+
+            for (int i = 0; i < source.Length; i++)
+            {
+                for (var j = 0; j < source[i].Length; j++)
+                {
+                    action(i, j, source[i][j]);
+                }
+            }
+        }
+
+        /// <summary>
         /// 展平张量
         /// </summary>
         /// <param name="tensor"></param>
         /// <returns></returns>
-        public static double[] Flatten(this ITensor tensor)
+        public static double[] Flatten(this ITensor tensor, double[] array = null)
         {
-            var result = new double[tensor.Num * tensor.Dimension * tensor.Width * tensor.Height];
+            var result = array ?? new double[tensor.Num * tensor.Dimension * tensor.Width * tensor.Height];
             for (int i = 0; i < tensor.Num; i++)
             {
                 for (var j = 0; j < tensor.Dimension; j++)

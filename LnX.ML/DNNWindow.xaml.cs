@@ -105,10 +105,10 @@ namespace LnX.ML
         {
             deepNeuralNetwork ??= DeepNeuralNetworkBuilder.Create()
             .SetLayerConfig(2, 2)
-            .SetActivationFunction(Function.CreateReLU())
-            //.SetAlpha(0.001)
-            //.SetMaxEpcoh(2000)
-            .SetBatchSize(32)
+            .SetActivationFunction(Function.CreateReLU(0.01))
+            //.SetAlpha(0.1)
+            .SetMaxEpcoh(1000)
+            //.SetBatchSize(32)
             .Build();
 
             new Thread(() =>

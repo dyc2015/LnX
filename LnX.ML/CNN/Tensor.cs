@@ -65,7 +65,7 @@ namespace LnX.ML.CNN
     /// <summary>
     /// 张量
     /// </summary>
-    public class Tensor : ITensor
+    public readonly struct Tensor : ITensor
     {
         public int Width { get; }
         public int Height { get; }

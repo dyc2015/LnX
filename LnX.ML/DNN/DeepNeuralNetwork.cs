@@ -1,5 +1,6 @@
 ﻿using LiveChartsCore.Defaults;
 using LnX.ML.CNN;
+using LnX.ML.Utils;
 using System;
 using System.Collections.Generic;
 using System.Drawing.Drawing2D;
@@ -256,6 +257,12 @@ namespace LnX.ML.DNN
         /// </summary>
         public List<double> Errors = [];
 
+        double cost;
+        /// <summary>
+        /// 当次训练代价
+        /// </summary>
+        public double Cost => cost;
+
         /// <summary>
         /// 单次训练
         /// </summary>
@@ -264,16 +271,7 @@ namespace LnX.ML.DNN
         public void Train(double[] input, double[] labels)
         {
             Compute(input);
-
-            for (var i = 0; i < Output.Length; i++)
-            {
-                deriveFromOutput[i] = ErrorFunction.Differentiate((i, SoftmaxOutput, labels));//dL/ds
-            }
-
-            for (var i = 0; i < Output.Length; i++)
-            {
-                OutputNeurons[i].RecordedError(softmaxFunction.Differentiate((i, SoftmaxOutput, deriveFromOutput)));//ds/da(l)
-            }
+            ComputeCost(labels);
         }
 
         /// <summary>
@@ -285,7 +283,7 @@ namespace LnX.ML.DNN
         {
             Errors.Clear();
 
-            double tmpError = 0, lastError = -1;
+            double tmpCost = 0, lastCost = -1;
             int epcoh = 0, dataLen = datas.GetLength(0);
             while (epcoh < maxEpcoh)
             {
@@ -296,30 +294,33 @@ namespace LnX.ML.DNN
 
                     Train(datas[i], labels[i]);
 
-                    tmpError += ErrorFunction.Compute((SoftmaxOutput, labels[i]));
+                    tmpCost += cost;
 
                     if (isUpdate) BackPropagation();
                 }
 
-                tmpError /= dataLen;
+                tmpCost /= dataLen;
 
-                if (Math.Abs(tmpError) <= minError) return;
-
-                if (tmpError == lastError) return;//梯度消失
-
-                if (lastError != -1 && tmpError - lastError > 0)//误差变大减小学习率
-                {
-                    alpha /= 2;
-                }
-
-                Errors.Add(tmpError);
-
-                lastError = tmpError;
-                tmpError = 0;
-
-                epcoh++;
+                Errors.Add(tmpCost);
 
                 onEpcohEnd?.Invoke();
+
+                if (Math.Abs(tmpCost) <= minError) return;
+
+                if (tmpCost == lastCost) return;//梯度消失
+
+                if (lastCost != -1)
+                {
+                    if (tmpCost - lastCost > 0)
+                    {//误差变大减小学习率
+                        alpha /= 2;
+                    }
+                }
+
+                lastCost = tmpCost;
+                tmpCost = 0;
+
+                epcoh++;
             }
         }
 
@@ -343,16 +344,37 @@ namespace LnX.ML.DNN
             }
         }
 
+        public void ComputeCost(double[] labels)
+        {
+            for (var i = 0; i < Output.Length; i++)
+            {
+                deriveFromOutput[i] = ErrorFunction.Differentiate((i, SoftmaxOutput, labels));//dL/ds
+            }
+
+            for (var i = 0; i < Output.Length; i++)
+            {
+                OutputNeurons[i].RecordedError(softmaxFunction.Differentiate((i, SoftmaxOutput, deriveFromOutput)));//ds/da(l)
+            }
+
+            cost = ErrorFunction.Compute((SoftmaxOutput, labels));
+        }
+
         /// <summary>
         /// 进行反向传播
         /// </summary>
         public void BackPropagation()
         {
-            OutputNeurons.FirstOrDefault()?.ResetError();//重置误差
+            neurons.ForEach(x => x.ResetError());//重置误差
+
+            for (var i = 0; i < Output.Length; i++)
+            {
+                OutputNeurons[i].UpdateError(OutputNeurons[i].AvgError);//ds/da(l)
+                OutputNeurons[i].ClearErrorRecords();
+            }
 
             foreach (var outputNeuron in OutputNeurons)
             {
-                outputNeuron.BackPropagation(alpha);//更新误差
+                outputNeuron.UpdateWeight(alpha);
             }
         }
 
@@ -456,7 +478,7 @@ namespace LnX.ML.DNN
         /// </summary>
         public void UpdateWeight(double alpha)
         {
-            weight -= alpha * RearNeuron.Error * FrontNeuron.Output;//alpha * dL/ds * ds/da(l) * da(l)/dz(l) * dz(l)/dw(l)
+            weight -= alpha * RearNeuron.Error * FrontNeuron.Output;//alpha * dL/da(l) * da(l)/dz(l) * dz(l)/dw(l)
         }
     }
 
@@ -486,11 +508,12 @@ namespace LnX.ML.DNN
 
         public virtual void UpdateError(double error)
         {
-            this.error += error * ActivationFunction.Differentiate(Input);//dL/ds * ds/da(l) * da(l)/dz(l)
+            error *= ActivationFunction.Differentiate(input);//dL/da(l) * da(l)/dz(l)
+            this.error += error;
 
             foreach (var x in FrontSynapses)
             {
-                x.FrontNeuron.UpdateError(this.error * x.Weight);//dz(l)/da(l-1)
+                x.FrontNeuron.UpdateError(error * x.Weight);//dL/da(l) * da(l)/dz(l) * dz(l)/da(l-1)
             }
         }
 
@@ -586,6 +609,8 @@ namespace LnX.ML.DNN
         double errorSum = 0;
         int errorCount = 0;
 
+        public double AvgError => errorSum / errorCount;
+
         /// <summary>
         /// 记录误差
         /// </summary>
@@ -603,17 +628,6 @@ namespace LnX.ML.DNN
         {
             errorSum = 0;
             errorCount = 0;
-        }
-
-        /// <summary>
-        /// 反向传播
-        /// </summary>
-        /// <param name="alpha">学习率</param>
-        public void BackPropagation(double alpha)
-        {
-            UpdateError(errorSum / errorCount);
-            UpdateWeight(alpha);
-            ClearErrorRecords();
         }
 
         public override string ToString()

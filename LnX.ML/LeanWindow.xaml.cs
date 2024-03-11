@@ -1,4 +1,6 @@
-﻿using LnX.ML.CNN;
+﻿using LiveChartsCore.Defaults;
+using LiveChartsCore.SkiaSharpView;
+using LnX.ML.CNN;
 using LnX.ML.DNN;
 using LnX.ML.Utils;
 using Microsoft.ML;
@@ -38,7 +40,7 @@ namespace LnX.ML
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            Test();
+            Init();
         }
 
         private void Window_Closed(object sender, EventArgs e)
@@ -47,38 +49,87 @@ namespace LnX.ML
             TestData = null;
         }
 
-        public void Test()
+        ConvolutionalNeuralNetwork convolutionalNeuralNetwork;
+
+        private void LeanBtn_Click(object sender, RoutedEventArgs e)
         {
-            var context = new TransformContext();
-            var transformer = new ConvolutionalTransformer(KernelUtil.Create(5, 5), Function.CreateReLU());
-            var poolingTransformer = new PoolingTransformer(transformer, 3, 3, Function.CreateMaxPooling());
-            var fullyConnectTransformer = new FullyConnectTransformer(poolingTransformer,
-                DeepNeuralNetworkBuilder.Create()
-                .SetLayerConfig(64, 10, 10)
-                .SetActivationFunction(Function.CreateReLU())
-                .SetErrorFunction(Function.CreateCrossEntropy())
-                .Build());
-            for (int i = 0; i < 10; i++)
+            var data = TrainData.Take(100);
+
+            new Thread(() =>
             {
-                context.Input = TrainData[i].Pixels;
-                context.Labels = TrainData[i].Labels;
+                var log = "开始训练...\n";
+                Dispatcher.Invoke(() =>
+                {
+                    LoadingBar.IsIndeterminate = true;
+                    TrainLog.Text = log;
+                });
 
-                transformer.Transform(context);
+                //var count = 0;
+                convolutionalNeuralNetwork.Train(data.Select(x => x.Pixels), data.Select(x => x.Labels), () =>
+                {
+                    var costs = convolutionalNeuralNetwork.Costs;
+                    log += $"第{costs.Count}轮，误差：{costs.LastOrDefault()}\n";
+                    //count++;
 
-                var sources = ImageSourceUtil.CreateBitmapSource(transformer.Output);
-                TestImg.Source = sources[0];
-                //TestImg1.Source = sources[1];
-                //TestImg2.Source = sources[2];
+                    //if (count > 100 && count % 100 == 0)
+                    //{
+                        Dispatcher.Invoke(() =>
+                        {
+                            TrainLog.Text = log;
+                            TrainLog.ScrollToEnd();
 
-                sources = ImageSourceUtil.CreateBitmapSource(poolingTransformer.Output);
-                TestImg3.Source = sources[0];
-                //TestImg4.Source = sources[1];
-                //TestImg5.Source = sources[2];
+                            var sources = ImageSourceUtil.CreateBitmapSource(convolutionalNeuralNetwork.Transformers[0].Output);
+                            TestImg.Source = sources[0];
+                            TestImg1.Source = sources[1];
+                            TestImg2.Source = sources[2];
+                            sources = ImageSourceUtil.CreateBitmapSource(convolutionalNeuralNetwork.Transformers[1].Output);
+                            TestImg3.Source = sources[0];
+                            TestImg4.Source = sources[1];
+                            TestImg5.Source = sources[2];
+                        });
+                    //}
+                });
 
-                fullyConnectTransformer.BackPropagation(context);
+                Dispatcher.Invoke(() =>
+                {
+                    LoadingBar.IsIndeterminate = false;
 
-                var t = fullyConnectTransformer.Output;
-            }
+                    var len = convolutionalNeuralNetwork.Costs.Count;
+                    var values = new List<ObservablePoint>();
+                    for (var i = 0; i < len; i+=len / 5)
+                    {
+                        values.Add(new ObservablePoint(i, convolutionalNeuralNetwork.Costs[i]));
+                    }
+
+                    MyChart.Series =
+                    [
+                        new LineSeries<ObservablePoint>
+                        {
+                            Values = values
+                        }
+                    ];
+                });
+            }).Start();
+        }
+
+        private void TestBtn_Click(object sender, RoutedEventArgs e)
+        {
+            convolutionalNeuralNetwork.Context.Labels = null;
+            convolutionalNeuralNetwork.Compute(TrainData[0].Pixels);
+
+            var t = convolutionalNeuralNetwork.Output;
+        }
+
+        public void Init()
+        {
+            convolutionalNeuralNetwork = ConvolutionalNeuralNetworkBuilder.Create()
+                .SetBatchSize(10)
+                .SetAlpha(0.1)
+                .SetMaxEpcoh(100)
+                .Append(new ConvolutionalTransformer(KernelUtil.Create(5, 5, 3), Function.CreateReLU()))
+                .Append(new PoolingTransformer(3, 3, Function.CreateMaxPooling()))
+                .Append(new FullyConnectTransformer(DeepNeuralNetworkBuilder.Create().SetLayerConfig(192, 10, 10).Build()))
+                .Build();
         }
     }
 }
